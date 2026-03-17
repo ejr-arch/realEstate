@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PropVista — Luxury Real Estate</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════╗ -->
+<!-- ║         LOGIN PAGE               ║ -->
+<!-- ╚══════════════════════════════════╝ -->
+<div id="login-page">
+  <div class="login-left">
+    <div class="login-brand">
+      <div class="logo-mark">P</div>
+      <h1>Find Your <span>Dream</span><br>Property Today</h1>
+      <p>Browse premium listings across Kampala and Greater Uganda. Connect directly with owners, tour sites, and secure your next investment.</p>
+      <div class="login-stats">
+        <div class="stat-item"><div class="num">128+</div><div class="lbl">Listings</div></div>
+        <div class="stat-item"><div class="num">94%</div><div class="lbl">Satisfaction</div></div>
+        <div class="stat-item"><div class="num">12</div><div class="lbl">Districts</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="login-box">
+      <div class="welcome">Welcome Back</div>
+      <div class="sub">Sign in to your PropVista account</div>
+
+      <div id="login-error" class="login-error hidden"></div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="email-input" placeholder="your@email.com" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="pass-input" placeholder="••••••••" />
+      </div>
+
+      <button class="btn-login" onclick="doLogin()">
+        <i class="fa-solid fa-arrow-right-to-bracket"></i>&nbsp; Sign In
+      </button>
+
+      <div class="login-divider">OR CONTINUE WITH DEMO</div>
+
+      <div class="demo-accounts">
+        <p>Quick access — no signup needed</p>
+        <button class="btn-demo admin" onclick="loginAs('admin')">
+          <i class="fa-solid fa-user-shield"></i>
+          Login as Admin (Owner)
+          <span class="role-badge">Admin</span>
+        </button>
+        <button class="btn-demo user" onclick="loginAs('user')">
+          <i class="fa-solid fa-user"></i>
+          Login as Buyer (Demo User)
+          <span class="role-badge">User</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════════╗ -->
+<!-- ║           APP PAGE               ║ -->
+<!-- ╚══════════════════════════════════╝ -->
+<div id="app-page">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">P</div>
+      <span class="nav-title">PropVista</span>
+    </div>
+    <div class="nav-sep"></div>
+    <span id="nav-role" class="nav-role-badge"></span>
+    <span id="nav-username" class="nav-user-name"></span>
+    <div class="nav-spacer"></div>
+    <!-- Admin stats in nav -->
+    <div class="nav-stats" id="admin-nav-stats" style="display:none">
+      <div class="ns-item"><div class="ns-val" id="stat-total">0</div><div class="ns-lbl">Total</div></div>
+      <div class="ns-item"><div class="ns-val" id="stat-avail">0</div><div class="ns-lbl">Available</div></div>
+      <div class="ns-item"><div class="ns-val" id="stat-sold">0</div><div class="ns-lbl">Sold</div></div>
+    </div>
+    <button class="nav-btn" title="Notifications" onclick="showToast('No new notifications', 'info')">
+      <i class="fa-regular fa-bell"></i>
+    </button>
+    <button class="nav-btn" id="chat-toggle-btn" title="Toggle Chat" onclick="toggleChat()">
+      <i class="fa-regular fa-comment-dots"></i>
+      <span class="badge hidden" id="chat-badge">0</span>
+    </button>
+    <button class="nav-btn" title="Logout" onclick="logout()">
+      <i class="fa-solid fa-right-from-bracket"></i>
+    </button>
+  </nav>
+
+  <!-- APP BODY -->
+  <div class="app-body">
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2 id="sidebar-title">Properties</h2>
+        <div class="filter-row" id="filter-row">
+          <button class="filter-btn active" data-filter="all" onclick="setFilter(this,'all')">All</button>
+          <button class="filter-btn" data-filter="available" onclick="setFilter(this,'available')">Available</button>
+          <button class="filter-btn" data-filter="sold" onclick="setFilter(this,'sold')">Sold</button>
+          <button class="filter-btn" data-filter="reserved" onclick="setFilter(this,'reserved')">Reserved</button>
+        </div>
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="search-input" placeholder="Search location, name..." oninput="filterProperties()" />
+        </div>
+      </div>
+      <div class="property-list" id="property-list">
+        <!-- Injected by JS -->
+      </div>
+    </aside>
+
+    <!-- ── MAP ── -->
+    <div class="map-container">
+      <div id="map"></div>
+      <div class="map-overlay-top">
+        <div class="map-view-toggle">
+          <button class="map-view-btn active" onclick="setMapView(this, 'street')">Street</button>
+          <button class="map-view-btn" onclick="setMapView(this, 'satellite')">Satellite</button>
+        </div>
+      </div>
+      <!-- Admin FAB -->
+      <div class="admin-fab" id="admin-fab" style="display:none">
+        <button class="fab primary" onclick="openAddPropertyModal()">
+          <i class="fa-solid fa-plus"></i> Add Property
+        </button>
+        <button class="fab secondary" onclick="showToast('Analytics coming soon!', 'gold')">
+          <i class="fa-solid fa-chart-line"></i> Analytics
+        </button>
+      </div>
+    </div>
+
+    <!-- ── CHAT PANEL ── -->
+    <div class="chat-panel collapsed" id="chat-panel">
+
+      <!-- Admin: show list of users / User: show convo with admin -->
+      <div id="chat-user-selector" style="display:none">
+        <div class="chat-header">
+          <div class="chat-avatar" style="background: linear-gradient(135deg, var(--gold), #a8782e);">
+            <i class="fa-solid fa-headset" style="font-size:14px;"></i>
+          </div>
+          <div class="chat-header-info">
+            <div class="name">Conversations</div>
+            <div class="status">2 active chats</div>
+          </div>
+          <div class="chat-header-actions">
+            <button class="chat-icon-btn" onclick="toggleChat()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+        <div class="admin-chat-list" id="admin-chat-list">
+          <!-- Injected by JS for admin -->
+        </div>
+      </div>
+
+      <!-- Conversation view -->
+      <div id="chat-convo" style="display:flex; flex-direction:column; height:100%;">
+        <div class="chat-header">
+          <button class="chat-icon-btn" id="back-to-list-btn" style="display:none;" onclick="showAdminChatList()">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <div class="chat-avatar" id="chat-avatar-display">A</div>
+          <div class="chat-header-info">
+            <div class="name" id="chat-with-name">PropVista Admin</div>
+            <div class="status" id="chat-status">Online · Usually replies instantly</div>
+          </div>
+          <div class="chat-header-actions">
+            <button class="chat-icon-btn" onclick="callAction('phone')" title="Voice Call">
+              <i class="fa-solid fa-phone"></i>
+            </button>
+            <button class="chat-icon-btn" onclick="callAction('video')" title="Video Call">
+              <i class="fa-solid fa-video"></i>
+            </button>
+            <button class="chat-icon-btn" onclick="toggleChat()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+
+        <div class="chat-messages" id="chat-messages"></div>
+
+        <!-- Typing indicator (hidden by default) -->
+        <div style="padding: 0 16px 8px; display:none;" id="typing-wrapper">
+          <div class="typing-indicator">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+
+        <div class="chat-input-area">
+          <!-- Recording preview -->
+          <div class="recording-preview hidden" id="recording-preview">
+            <div class="rec-dot"></div>
+            <span class="rec-timer" id="rec-timer">0:00</span>
+            <button class="rec-stop" onclick="stopRecording()">Stop & Send</button>
+            <button style="font-size:12px; color:var(--txt-3); margin-left:4px;" onclick="cancelRecording()">Cancel</button>
+          </div>
+          <!-- Image preview -->
+          <div class="media-preview hidden" id="img-preview-row"></div>
+          <!-- Emoji picker -->
+          <div class="emoji-picker hidden" id="emoji-picker"></div>
+
+          <!-- Toolbar -->
+          <div class="chat-toolbar">
+            <button class="toolbar-btn" id="emoji-btn" title="Emoji" onclick="toggleEmojiPicker()">
+              <i class="fa-regular fa-face-smile"></i>
+            </button>
+            <button class="toolbar-btn" title="Attach Image" onclick="document.getElementById('img-file-input').click()">
+              <i class="fa-regular fa-image"></i>
+            </button>
+            <button class="toolbar-btn" title="Record Audio" id="audio-record-btn" onclick="toggleAudioRecord()">
+              <i class="fa-solid fa-microphone"></i>
+            </button>
+            <button class="toolbar-btn" title="Share Location" onclick="shareLocation()">
+              <i class="fa-solid fa-location-dot"></i>
+            </button>
+            <button class="toolbar-btn" id="send-property-btn" title="Share Property" onclick="openSharePropertyPicker()">
+              <i class="fa-solid fa-house-chimney"></i>
+            </button>
+            <input type="file" id="img-file-input" accept="image/*" multiple style="display:none;" onchange="handleImageUpload(this)" />
+          </div>
+
+          <!-- Input row -->
+          <div class="chat-input-row">
+            <textarea
+              id="chat-textarea"
+              placeholder="Type a message…"
+              rows="1"
+              onkeydown="handleMsgKeydown(event)"
+              oninput="autoResize(this)"
+            ></textarea>
+            <button class="send-btn" onclick="sendTextMessage()">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /chat-panel -->
+
+  </div><!-- /app-body -->
+</div><!-- /app-page -->
+
+<!-- ═══════════════════════════════════
+     PROPERTY DETAIL MODAL
+═══════════════════════════════════ -->
+<div class="modal-overlay" id="prop-modal" onclick="closePropModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closePropModalDirect()"><i class="fa-solid fa-xmark"></i></button>
+    <div class="modal-gallery">
+      <div class="gal-main" id="modal-img"></div>
+      <div class="gal-overlay"></div>
+      <div class="gal-status" id="modal-status"></div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-price" id="modal-price"></div>
+      <div class="modal-name" id="modal-name"></div>
+      <div class="modal-addr" id="modal-addr"></div>
+      <div class="modal-specs" id="modal-specs"></div>
+      <p class="modal-desc" id="modal-desc"></p>
+      <div class="modal-actions" id="modal-actions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     ADD PROPERTY MODAL (Admin)
+═══════════════════════════════════ -->
+<div class="modal-overlay" id="add-prop-modal" onclick="closeAddModal(event)">
+  <div class="modal-box" style="max-width:560px;">
+    <button class="modal-close" style="position:absolute;top:16px;right:16px;" onclick="closeAddModalDirect()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <div class="modal-body" style="padding-top:24px;">
+      <div class="modal-section-title">Add New Property</div>
+      <div class="add-prop-form" id="add-prop-form">
+        <div class="form-row">
+          <div class="form-group"><label>Property Name</label><input id="f-name" placeholder="e.g. Kololo Heights Villa" /></div>
+          <div class="form-group"><label>Address / Area</label><input id="f-addr" placeholder="e.g. Kololo, Kampala" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Price (UGX)</label>
+            <input id="f-price" placeholder="e.g. 850,000,000" />
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            <select id="f-type">
+              <option>Villa</option><option>Apartment</option><option>House</option>
+              <option>Land</option><option>Commercial</option><option>Estate</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Bedrooms</label><input id="f-beds" type="number" placeholder="4" min="0" /></div>
+          <div class="form-group"><label>Bathrooms</label><input id="f-baths" type="number" placeholder="3" min="0" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Area (sqm)</label><input id="f-area" placeholder="300" /></div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="f-status">
+              <option value="available">Available</option>
+              <option value="reserved">Reserved</option>
+              <option value="sold">Sold</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Latitude</label><input id="f-lat" placeholder="0.3376" /></div>
+          <div class="form-group"><label>Longitude</label><input id="f-lng" placeholder="32.5933" /></div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="f-desc" rows="3" placeholder="Describe the property…" style="width:100%;background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--txt);resize:vertical;"></textarea>
+        </div>
+        <button class="modal-btn primary" style="width:100%;margin-top:8px;" onclick="submitAddProperty()">
+          <i class="fa-solid fa-plus"></i> Add Property
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     SHARE PROPERTY PICKER (Chat)
+═══════════════════════════════════ -->
+<div class="modal-overlay" id="share-prop-modal" onclick="closeShareModal(event)">
+  <div class="modal-box" style="max-width:400px; max-height:500px;">
+    <div class="modal-body">
+      <div class="modal-section-title">Share a Property</div>
+      <div id="share-prop-list" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Image lightbox -->
+<div class="lightbox hidden" id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="Preview" />
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script src="chat.js"></script>
+</body>
+</html>
