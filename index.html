@@ -9,8 +9,321 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    /* ─── FIX: make body transparent so pseudo-element bg shows through ─── */
+    body {
+      background: transparent !important;
+    }
+
+    /* ─── ANIMATED BACKGROUND ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url('assets/bg/bg1.png');
+      background-size: cover;
+      background-position: center;
+      z-index: -2;
+      animation: bgDrift 30s ease-in-out infinite alternate;
+      filter: brightness(0.22) saturate(0.7);
+      transform-origin: center center;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(8, 10, 18, 0.85) 0%,
+        rgba(14, 17, 30, 0.7) 50%,
+        rgba(8, 10, 18, 0.9) 100%
+      );
+      z-index: -1;
+    }
+
+    @keyframes bgDrift {
+      0%   { transform: scale(1.0) translate(0, 0); }
+      25%  { transform: scale(1.06) translate(-1%, -1.5%); }
+      50%  { transform: scale(1.1) translate(1.5%, -1%); }
+      75%  { transform: scale(1.05) translate(-1.5%, 1%); }
+      100% { transform: scale(1.08) translate(1%, 1.5%); }
+    }
+
+    /* ─── MUSIC CONTROLS ─── */
+    #music-controls {
+      position: fixed;
+      bottom: 84px;   /* lifted above admin-fab which sits at bottom:24px */
+      left: 24px;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(20, 22, 35, 0.85);
+      border: 1px solid rgba(var(--gold-rgb, 212, 175, 55), 0.25);
+      backdrop-filter: blur(12px);
+      border-radius: 40px;
+      padding: 8px 16px 8px 10px;
+      transition: all 0.3s ease;
+    }
+
+    #music-controls:hover {
+      border-color: rgba(212, 175, 55, 0.5);
+      box-shadow: 0 4px 20px rgba(212, 175, 55, 0.15);
+    }
+
+    #music-toggle {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, #d4af37, #a8782e);
+      color: #0a0c14;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    #music-toggle:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 14px rgba(212, 175, 55, 0.5);
+    }
+
+    .music-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .music-label {
+      font-size: 10px;
+      color: rgba(212, 175, 55, 0.7);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .music-title {
+      font-size: 11px;
+      color: rgba(255,255,255,0.8);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 130px;
+    }
+
+    /* Animated equalizer bars when playing */
+    .eq-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 16px;
+    }
+
+    .eq-bars span {
+      display: block;
+      width: 3px;
+      border-radius: 2px;
+      background: linear-gradient(to top, #d4af37, #f0d060);
+      animation: none;
+      height: 4px;
+      transition: height 0.1s;
+    }
+
+    .eq-bars.playing span:nth-child(1) { animation: eq1 0.6s ease-in-out infinite alternate; }
+    .eq-bars.playing span:nth-child(2) { animation: eq2 0.5s ease-in-out infinite alternate; }
+    .eq-bars.playing span:nth-child(3) { animation: eq3 0.7s ease-in-out infinite alternate; }
+    .eq-bars.playing span:nth-child(4) { animation: eq4 0.4s ease-in-out infinite alternate; }
+
+    @keyframes eq1 { from { height: 4px; } to { height: 14px; } }
+    @keyframes eq2 { from { height: 8px; } to { height: 4px; } }
+    @keyframes eq3 { from { height: 4px; } to { height: 10px; } }
+    @keyframes eq4 { from { height: 10px; } to { height: 4px; } }
+
+    /* Volume slider */
+    .vol-slider {
+      -webkit-appearance: none;
+      width: 70px;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      outline: none;
+      cursor: pointer;
+      accent-color: #d4af37;
+    }
+
+    /* ─── AI CHAT ENHANCEMENTS ─── */
+    .chat-msg.ai .bubble {
+      background: linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(20,22,35,0.95) 100%);
+      border: 1px solid rgba(212,175,55,0.2);
+    }
+
+    .ai-thinking {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(212,175,55,0.07);
+      border: 1px solid rgba(212,175,55,0.15);
+      border-radius: 12px;
+      font-size: 12px;
+      color: rgba(212,175,55,0.8);
+    }
+
+    .ai-thinking-dots {
+      display: flex;
+      gap: 3px;
+    }
+
+    .ai-thinking-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #d4af37;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+
+    .ai-thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .ai-thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Quick reply chips */
+    .quick-replies {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px 12px 4px;
+    }
+
+    .qr-chip {
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(212,175,55,0.3);
+      background: rgba(212,175,55,0.07);
+      color: rgba(212,175,55,0.9);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .qr-chip:hover {
+      background: rgba(212,175,55,0.2);
+      border-color: rgba(212,175,55,0.6);
+      transform: translateY(-1px);
+    }
+
+    /* AI badge on chat header */
+    .ai-badge {
+      font-size: 9px;
+      background: linear-gradient(90deg, #d4af37, #f0c040);
+      color: #0a0c14;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    /* Mute/unmute notification toast style */
+    #music-toast {
+      position: fixed;
+      bottom: 80px;
+      left: 24px;
+      background: rgba(20,22,35,0.95);
+      border: 1px solid rgba(212,175,55,0.3);
+      color: rgba(255,255,255,0.9);
+      font-size: 12px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      z-index: 10000;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    #music-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Autoplay banner */
+    #autoplay-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(90deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05));
+      border-bottom: 1px solid rgba(212,175,55,0.2);
+      backdrop-filter: blur(8px);
+      z-index: 10000;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.85);
+    }
+
+    #autoplay-banner button {
+      background: linear-gradient(135deg, #d4af37, #a8782e);
+      color: #0a0c14;
+      border: none;
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+    }
+
+    #autoplay-banner .dismiss {
+      background: none;
+      color: rgba(255,255,255,0.4);
+      padding: 6px 10px;
+    }
+  </style>
 </head>
 <body>
+
+<!-- Background audio -->
+<audio id="bg-music" src="assets/bg/a2.mp3" loop preload="auto"></audio>
+
+<!-- Autoplay prompt banner -->
+<div id="autoplay-banner">
+  <i class="fa-solid fa-music" style="color:#d4af37;"></i>
+  <span>PropVista ambient soundtrack ready</span>
+  <button onclick="enableMusic()"><i class="fa-solid fa-play"></i>&nbsp; Play</button>
+  <button class="dismiss" onclick="dismissBanner()"><i class="fa-solid fa-xmark"></i></button>
+</div>
+
+<!-- Music controls (bottom-left) -->
+<div id="music-controls">
+  <button id="music-toggle" onclick="toggleMusic()" title="Toggle music">
+    <i class="fa-solid fa-pause" id="music-icon"></i>
+  </button>
+  <div class="music-info">
+    <span class="music-label">Ambient</span>
+    <span class="music-title">PropVista Atmosphere</span>
+  </div>
+  <div class="eq-bars playing" id="eq-bars">
+    <span></span><span></span><span></span><span></span>
+  </div>
+  <input type="range" class="vol-slider" id="vol-slider" min="0" max="1" step="0.05" value="0.4" oninput="setVolume(this.value)" />
+</div>
+<div id="music-toast"></div>
 
 <!-- ╔══════════════════════════════════╗ -->
 <!-- ║         LOGIN PAGE               ║ -->
@@ -92,7 +405,7 @@
     <button class="nav-btn" title="Notifications" onclick="showToast('No new notifications', 'info')">
       <i class="fa-regular fa-bell"></i>
     </button>
-    <button class="nav-btn" id="chat-toggle-btn" title="Toggle Chat" onclick="toggleChat()">
+    <button class="nav-btn" id="chat-toggle-btn" title="Toggle AI Chat" onclick="toggleChat()">
       <i class="fa-regular fa-comment-dots"></i>
       <span class="badge hidden" id="chat-badge">0</span>
     </button>
@@ -172,17 +485,22 @@
           <button class="chat-icon-btn" id="back-to-list-btn" style="display:none;" onclick="showAdminChatList()">
             <i class="fa-solid fa-chevron-left"></i>
           </button>
-          <div class="chat-avatar" id="chat-avatar-display">A</div>
+          <div class="chat-avatar" id="chat-avatar-display"
+               style="background: linear-gradient(135deg,#d4af37,#a8782e); color:#0a0c14; font-weight:800;">
+            AI
+          </div>
           <div class="chat-header-info">
-            <div class="name" id="chat-with-name">PropVista Admin</div>
-            <div class="status" id="chat-status">Online · Usually replies instantly</div>
+            <div class="name" id="chat-with-name">
+              PropVista Assistant
+              <span class="ai-badge">AI</span>
+            </div>
+            <div class="status" id="chat-status">
+              Powered by Claude · Always available
+            </div>
           </div>
           <div class="chat-header-actions">
-            <button class="chat-icon-btn" onclick="callAction('phone')" title="Voice Call">
-              <i class="fa-solid fa-phone"></i>
-            </button>
-            <button class="chat-icon-btn" onclick="callAction('video')" title="Video Call">
-              <i class="fa-solid fa-video"></i>
+            <button class="chat-icon-btn" onclick="clearAIChat()" title="Clear chat">
+              <i class="fa-solid fa-rotate-left"></i>
             </button>
             <button class="chat-icon-btn" onclick="toggleChat()"><i class="fa-solid fa-xmark"></i></button>
           </div>
@@ -190,21 +508,26 @@
 
         <div class="chat-messages" id="chat-messages"></div>
 
-        <!-- Typing indicator (hidden by default) -->
+        <!-- Quick replies -->
+        <div class="quick-replies" id="quick-replies">
+          <button class="qr-chip" onclick="sendQuickReply('What properties are available?')">Available listings</button>
+          <button class="qr-chip" onclick="sendQuickReply('What are the prices?')">View prices</button>
+          <button class="qr-chip" onclick="sendQuickReply('How do I book a viewing?')">Book viewing</button>
+          <button class="qr-chip" onclick="sendQuickReply('Tell me about Kampala real estate')">Market info</button>
+        </div>
+
+        <!-- Typing indicator -->
         <div style="padding: 0 16px 8px; display:none;" id="typing-wrapper">
-          <div class="typing-indicator">
-            <span></span><span></span><span></span>
+          <div class="ai-thinking">
+            <i class="fa-solid fa-robot" style="color:#d4af37; font-size:12px;"></i>
+            <span>AI is thinking</span>
+            <div class="ai-thinking-dots">
+              <span></span><span></span><span></span>
+            </div>
           </div>
         </div>
 
         <div class="chat-input-area">
-          <!-- Recording preview -->
-          <div class="recording-preview hidden" id="recording-preview">
-            <div class="rec-dot"></div>
-            <span class="rec-timer" id="rec-timer">0:00</span>
-            <button class="rec-stop" onclick="stopRecording()">Stop & Send</button>
-            <button style="font-size:12px; color:var(--txt-3); margin-left:4px;" onclick="cancelRecording()">Cancel</button>
-          </div>
           <!-- Image preview -->
           <div class="media-preview hidden" id="img-preview-row"></div>
           <!-- Emoji picker -->
@@ -217,9 +540,6 @@
             </button>
             <button class="toolbar-btn" title="Attach Image" onclick="document.getElementById('img-file-input').click()">
               <i class="fa-regular fa-image"></i>
-            </button>
-            <button class="toolbar-btn" title="Record Audio" id="audio-record-btn" onclick="toggleAudioRecord()">
-              <i class="fa-solid fa-microphone"></i>
             </button>
             <button class="toolbar-btn" title="Share Location" onclick="shareLocation()">
               <i class="fa-solid fa-location-dot"></i>
@@ -234,7 +554,7 @@
           <div class="chat-input-row">
             <textarea
               id="chat-textarea"
-              placeholder="Type a message…"
+              placeholder="Ask about properties, prices, locations…"
               rows="1"
               onkeydown="handleMsgKeydown(event)"
               oninput="autoResize(this)"
@@ -357,5 +677,86 @@
 <script src="data.js"></script>
 <script src="app.js"></script>
 <script src="chat.js"></script>
+
+<script>
+  /* ══════════════════════════════════
+     BACKGROUND MUSIC CONTROLLER
+  ══════════════════════════════════ */
+  const bgAudio = document.getElementById('bg-music');
+  const musicIcon = document.getElementById('music-icon');
+  const eqBars = document.getElementById('eq-bars');
+  const volSlider = document.getElementById('vol-slider');
+  let musicPlaying = false;
+
+  bgAudio.volume = 0.4;
+
+  function enableMusic() {
+    bgAudio.play().then(() => {
+      musicPlaying = true;
+      musicIcon.className = 'fa-solid fa-pause';
+      eqBars.classList.add('playing');
+      dismissBanner();
+      showMusicToast('♪ Now playing ambient soundtrack');
+    }).catch(() => {
+      showMusicToast('Audio blocked by browser — click play');
+    });
+  }
+
+  function dismissBanner() {
+    const b = document.getElementById('autoplay-banner');
+    if (b) {
+      b.style.opacity = '0';
+      b.style.transform = 'translateY(-100%)';
+      b.style.transition = 'all 0.4s ease';
+      setTimeout(() => b.remove(), 400);
+    }
+  }
+
+  function toggleMusic() {
+    if (musicPlaying) {
+      bgAudio.pause();
+      musicPlaying = false;
+      musicIcon.className = 'fa-solid fa-play';
+      eqBars.classList.remove('playing');
+      showMusicToast('Music paused');
+    } else {
+      bgAudio.play().then(() => {
+        musicPlaying = true;
+        musicIcon.className = 'fa-solid fa-pause';
+        eqBars.classList.add('playing');
+        showMusicToast('♪ Resumed');
+      });
+    }
+  }
+
+  function setVolume(val) {
+    bgAudio.volume = parseFloat(val);
+    if (parseFloat(val) === 0) {
+      eqBars.classList.remove('playing');
+    } else if (musicPlaying) {
+      eqBars.classList.add('playing');
+    }
+  }
+
+  function showMusicToast(msg) {
+    const t = document.getElementById('music-toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // Try autoplay on first user interaction
+  document.addEventListener('click', function tryAutoplay() {
+    const banner = document.getElementById('autoplay-banner');
+    if (banner && !musicPlaying) {
+      bgAudio.play().then(() => {
+        musicPlaying = true;
+        musicIcon.className = 'fa-solid fa-pause';
+        eqBars.classList.add('playing');
+        dismissBanner();
+      }).catch(() => {});
+    }
+  }, { once: true });
+</script>
 </body>
 </html>
