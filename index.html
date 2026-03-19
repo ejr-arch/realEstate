@@ -344,39 +344,64 @@
 
   <div class="login-right">
     <div class="login-box">
-      <div class="welcome">Welcome Back</div>
-      <div class="sub">Sign in to your PropVista account</div>
+
+      <!-- Tab switcher -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-signin" onclick="switchAuthTab('signin')">Sign In</button>
+        <button class="auth-tab"        id="tab-signup" onclick="switchAuthTab('signup')">Create Account</button>
+      </div>
 
       <div id="login-error" class="login-error hidden"></div>
 
-      <div class="form-group">
-        <label>Email Address</label>
-        <input type="email" id="email-input" placeholder="your@email.com" />
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="pass-input" placeholder="••••••••" />
-      </div>
-
-      <button class="btn-login" onclick="doLogin()">
-        <i class="fa-solid fa-arrow-right-to-bracket"></i>&nbsp; Sign In
-      </button>
-
-      <div class="login-divider">OR CONTINUE WITH DEMO</div>
-
-      <div class="demo-accounts">
-        <p>Quick access — no signup needed</p>
-        <button class="btn-demo admin" onclick="loginAs('admin')">
-          <i class="fa-solid fa-user-shield"></i>
-          Login as Admin (Owner)
-          <span class="role-badge">Admin</span>
-        </button>
-        <button class="btn-demo user" onclick="loginAs('user')">
-          <i class="fa-solid fa-user"></i>
-          Login as Buyer (Demo User)
-          <span class="role-badge">User</span>
+      <!-- SIGN IN FORM -->
+      <div id="form-signin">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="email-input" placeholder="your@email.com"
+                 onkeydown="if(event.key==='Enter') doLogin()" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="pass-wrap">
+            <input type="password" id="pass-input" placeholder="••••••••"
+                   onkeydown="if(event.key==='Enter') doLogin()" />
+            <button class="pass-toggle" type="button" onclick="togglePass('pass-input',this)">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <button class="btn-login" id="btn-signin" onclick="doLogin()">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i>&nbsp; Sign In
         </button>
       </div>
+
+      <!-- SIGN UP FORM -->
+      <div id="form-signup" style="display:none;">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="reg-name" placeholder="e.g. John Mukasa"
+                 onkeydown="if(event.key==='Enter') doRegister()" />
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="reg-email" placeholder="your@email.com"
+                 onkeydown="if(event.key==='Enter') doRegister()" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="pass-wrap">
+            <input type="password" id="reg-pass" placeholder="Min. 8 characters"
+                   onkeydown="if(event.key==='Enter') doRegister()" />
+            <button class="pass-toggle" type="button" onclick="togglePass('reg-pass',this)">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <button class="btn-login" id="btn-signup" onclick="doRegister()">
+          <i class="fa-solid fa-user-plus"></i>&nbsp; Create Account
+        </button>
+      </div>
+
     </div>
   </div>
 </div>
@@ -674,6 +699,7 @@
 
 <!-- Scripts -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="db.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 <script src="chat.js"></script>
@@ -757,6 +783,179 @@
       }).catch(() => {});
     }
   }, { once: true });
+</script>
+<style>
+  /* Auth tabs */
+  .auth-tabs {
+    display: flex; gap: 4px;
+    background: var(--bg-3); border-radius: var(--r);
+    padding: 4px; margin-bottom: 24px;
+    border: 1px solid var(--border-2);
+  }
+  .auth-tab {
+    flex: 1; padding: 9px; border-radius: 7px;
+    font-size: 13px; font-weight: 500;
+    color: var(--txt-2); transition: var(--transition);
+  }
+  .auth-tab.active {
+    background: var(--bg-card); color: var(--gold);
+    box-shadow: 0 1px 6px rgba(0,0,0,.3);
+  }
+  /* Password show/hide wrapper */
+  .pass-wrap { position: relative; }
+  .pass-wrap input { padding-right: 40px !important; }
+  .pass-toggle {
+    position: absolute; right: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--txt-3); font-size: 14px;
+    transition: var(--transition);
+  }
+  .pass-toggle:hover { color: var(--gold); }
+  /* Loading state on button */
+  .btn-login.loading { opacity: 0.7; pointer-events: none; }
+  .btn-login.loading::after {
+    content: "";
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(12,12,16,.4);
+    border-top-color: #0c0c10;
+    border-radius: 50%; margin-left: 8px;
+    animation: spin .6s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+<script>
+/* ── Auth tab switcher ── */
+function switchAuthTab(tab) {
+  document.getElementById("form-signin").style.display = tab === "signin" ? "block" : "none";
+  document.getElementById("form-signup").style.display = tab === "signup" ? "block" : "none";
+  document.getElementById("tab-signin").classList.toggle("active", tab === "signin");
+  document.getElementById("tab-signup").classList.toggle("active", tab === "signup");
+  document.getElementById("login-error").classList.add("hidden");
+}
+
+/* ── Show/hide password ── */
+function togglePass(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const icon  = btn.querySelector("i");
+  if (input.type === "password") {
+    input.type = "text";
+    icon.className = "fa-regular fa-eye-slash";
+  } else {
+    input.type = "password";
+    icon.className = "fa-regular fa-eye";
+  }
+}
+
+/* ── Show login error ── */
+function showLoginError(msg) {
+  const el = document.getElementById("login-error");
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+
+/* ── SIGN IN ── */
+async function doLogin() {
+  const email = document.getElementById("email-input").value.trim();
+  const pass  = document.getElementById("pass-input").value;
+  document.getElementById("login-error").classList.add("hidden");
+
+  if (!email || !pass) { showLoginError("Please enter your email and password."); return; }
+
+  const btn = document.getElementById("btn-signin");
+  btn.classList.add("loading");
+
+  try {
+    await new Promise(resolve => {
+      if (window._db) resolve();
+      else window.addEventListener("db:ready", resolve, { once: true });
+    });
+
+    const { user, profile } = await dbSignIn(email, pass);
+    window.currentUser = profile;
+
+    // Hand off to app.js login handler
+    if (typeof onUserLoggedIn === "function") {
+      onUserLoggedIn(profile);
+    } else {
+      // Fallback: show app page and set nav labels manually
+      document.getElementById("login-page").style.display = "none";
+      const appPage = document.getElementById("app-page");
+      appPage.style.display = "flex";
+      appPage.classList.add("active");
+      const roleEl = document.getElementById("nav-role");
+      if (roleEl) { roleEl.textContent = profile.role; roleEl.className = "nav-role-badge " + profile.role; }
+      const nameEl = document.getElementById("nav-username");
+      if (nameEl) nameEl.textContent = profile.name;
+      if (profile.role === "admin") {
+        document.getElementById("admin-fab")?.style && (document.getElementById("admin-fab").style.display = "flex");
+        document.getElementById("admin-nav-stats")?.style && (document.getElementById("admin-nav-stats").style.display = "flex");
+      }
+    }
+  } catch (err) {
+    const msg = err.message || "Login failed";
+    showLoginError(msg.includes("Invalid") ? "Incorrect email or password." : msg);
+  } finally {
+    btn.classList.remove("loading");
+  }
+}
+
+/* ── REGISTER ── */
+async function doRegister() {
+  const name  = document.getElementById("reg-name").value.trim();
+  const email = document.getElementById("reg-email").value.trim();
+  const pass  = document.getElementById("reg-pass").value;
+  document.getElementById("login-error").classList.add("hidden");
+
+  if (!name || !email || !pass) { showLoginError("All fields are required."); return; }
+  if (pass.length < 8) { showLoginError("Password must be at least 8 characters."); return; }
+
+  const btn = document.getElementById("btn-signup");
+  btn.classList.add("loading");
+
+  try {
+    await new Promise(resolve => {
+      if (window._db) resolve();
+      else window.addEventListener("db:ready", resolve, { once: true });
+    });
+
+    const { error } = await window._db.auth.signUp({
+      email, password: pass,
+      options: { data: { name, role: "user" } }
+    });
+    if (error) throw error;
+
+    // Auto sign-in after registration
+    const { user, profile } = await dbSignIn(email, pass);
+    window.currentUser = profile;
+
+    if (typeof onUserLoggedIn === "function") {
+      onUserLoggedIn(profile);
+    } else {
+      document.getElementById("login-page").style.display = "none";
+      const appPage = document.getElementById("app-page");
+      appPage.style.display = "flex";
+      appPage.classList.add("active");
+    }
+  } catch (err) {
+    const msg = err.message || "Registration failed";
+    showLoginError(msg.includes("already registered") ? "This email is already registered. Try signing in." : msg);
+  } finally {
+    btn.classList.remove("loading");
+  }
+}
+
+/* ── LOGOUT ── */
+async function logout() {
+  await dbSignOut();
+  window.currentUser = null;
+  document.getElementById("app-page").style.display = "none";
+  document.getElementById("app-page").classList.remove("active");
+  document.getElementById("login-page").style.display = "flex";
+  document.getElementById("email-input").value = "";
+  document.getElementById("pass-input").value = "";
+  switchAuthTab("signin");
+}
 </script>
 </body>
 </html>
