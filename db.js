@@ -5,19 +5,21 @@
 
 // ── FILL IN YOUR SUPABASE PROJECT DETAILS ────────────────────
 //  Dashboard → Settings → API
-const SUPABASE_URL  = 'https://YOUR_PROJECT.supabase.co';
-const SUPABASE_ANON = 'YOUR_ANON_PUBLIC_KEY';
+const SUPABASE_URL = "https://xxqpravuxemjymaexfjh.supabase.co";
+const SUPABASE_ANON =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4cXByYXZ1eGVtanltYWV4ZmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MjMwODYsImV4cCI6MjA4OTQ5OTA4Nn0.35-yslmIrDaxRULaBr28MXzV8hYF1MyfiSjhW2fjt34";
 // ─────────────────────────────────────────────────────────────
 
 /* Load Supabase JS from CDN (added dynamically so this file is self-contained) */
 (function loadSupabase() {
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+  const script = document.createElement("script");
+  script.src =
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
   script.onload = () => {
     window._db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-      realtime: { params: { eventsPerSecond: 20 } }
+      realtime: { params: { eventsPerSecond: 20 } },
     });
-    window.dispatchEvent(new Event('db:ready'));
+    window.dispatchEvent(new Event("db:ready"));
   };
   document.head.appendChild(script);
 })();
@@ -26,7 +28,10 @@ const SUPABASE_ANON = 'YOUR_ANON_PUBLIC_KEY';
 
 /** Sign in with email + password. Returns { user, profile } or throws. */
 async function dbSignIn(email, password) {
-  const { data, error } = await window._db.auth.signInWithPassword({ email, password });
+  const { data, error } = await window._db.auth.signInWithPassword({
+    email,
+    password,
+  });
   if (error) throw error;
 
   const profile = await dbGetProfile(data.user.id);
@@ -44,9 +49,9 @@ async function dbSignOut() {
 /** Fetch a profile row */
 async function dbGetProfile(uid) {
   const { data, error } = await window._db
-    .from('profiles')
-    .select('*')
-    .eq('id', uid)
+    .from("profiles")
+    .select("*")
+    .eq("id", uid)
     .single();
   if (error) throw error;
   return data;
@@ -54,9 +59,10 @@ async function dbGetProfile(uid) {
 
 /** Set online status */
 async function dbSetOnline(uid, online) {
-  await window._db.from('profiles')
+  await window._db
+    .from("profiles")
     .update({ online, last_seen: new Date().toISOString() })
-    .eq('id', uid);
+    .eq("id", uid);
 }
 
 /* ── Message helpers ─────────────────────────────────────────── */
@@ -64,19 +70,29 @@ async function dbSetOnline(uid, online) {
 /** Fetch message history between two users */
 async function dbGetMessages(uid1, uid2, limit = 80) {
   const { data, error } = await window._db
-    .from('messages')
-    .select('*, from:from_id(id,name,role,avatar_char), to:to_id(id,name,role,avatar_char)')
-    .or(`and(from_id.eq.${uid1},to_id.eq.${uid2}),and(from_id.eq.${uid2},to_id.eq.${uid1})`)
-    .order('created_at', { ascending: true })
+    .from("messages")
+    .select(
+      "*, from:from_id(id,name,role,avatar_char), to:to_id(id,name,role,avatar_char)",
+    )
+    .or(
+      `and(from_id.eq.${uid1},to_id.eq.${uid2}),and(from_id.eq.${uid2},to_id.eq.${uid1})`,
+    )
+    .order("created_at", { ascending: true })
     .limit(limit);
   if (error) throw error;
   return data;
 }
 
 /** Send a message */
-async function dbSendMessage(fromId, toId, content, type = 'text', metadata = null) {
+async function dbSendMessage(
+  fromId,
+  toId,
+  content,
+  type = "text",
+  metadata = null,
+) {
   const { data, error } = await window._db
-    .from('messages')
+    .from("messages")
     .insert({ from_id: fromId, to_id: toId, content, type, metadata })
     .select()
     .single();
@@ -87,17 +103,18 @@ async function dbSendMessage(fromId, toId, content, type = 'text', metadata = nu
 /** Mark all messages from a sender as read */
 async function dbMarkRead(fromId, toId) {
   await window._db
-    .from('messages')
+    .from("messages")
     .update({ read: true })
-    .eq('from_id', fromId)
-    .eq('to_id', toId)
-    .eq('read', false);
+    .eq("from_id", fromId)
+    .eq("to_id", toId)
+    .eq("read", false);
 }
 
 /** Get all conversation partners for admin */
 async function dbGetConversations(adminId) {
-  const { data, error } = await window._db
-    .rpc('get_conversations', { admin_uid: adminId });
+  const { data, error } = await window._db.rpc("get_conversations", {
+    admin_uid: adminId,
+  });
   if (error) throw error;
   return data || [];
 }
@@ -105,10 +122,10 @@ async function dbGetConversations(adminId) {
 /** Get all non-admin profiles (for admin to pick who to chat with) */
 async function dbGetUsers() {
   const { data, error } = await window._db
-    .from('profiles')
-    .select('*')
-    .eq('role', 'user')
-    .order('created_at', { ascending: false });
+    .from("profiles")
+    .select("*")
+    .eq("role", "user")
+    .order("created_at", { ascending: false });
   if (error) throw error;
   return data || [];
 }
@@ -116,10 +133,10 @@ async function dbGetUsers() {
 /** Count unread messages for current user */
 async function dbUnreadCount(toId) {
   const { count, error } = await window._db
-    .from('messages')
-    .select('id', { count: 'exact', head: true })
-    .eq('to_id', toId)
-    .eq('read', false);
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("to_id", toId)
+    .eq("read", false);
   if (error) return 0;
   return count || 0;
 }
@@ -130,14 +147,14 @@ function dbSubscribeMessages(myId, onMessage) {
   const channel = window._db
     .channel(`messages:${myId}`)
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `to_id=eq.${myId}`
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `to_id=eq.${myId}`,
       },
-      payload => onMessage(payload.new)
+      (payload) => onMessage(payload.new),
     )
     .subscribe();
   return channel;
@@ -146,11 +163,11 @@ function dbSubscribeMessages(myId, onMessage) {
 /** Subscribe to profile online status changes */
 function dbSubscribePresence(onUpdate) {
   return window._db
-    .channel('profiles:presence')
+    .channel("profiles:presence")
     .on(
-      'postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: 'profiles' },
-      payload => onUpdate(payload.new)
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "profiles" },
+      (payload) => onUpdate(payload.new),
     )
     .subscribe();
 }
